@@ -25,68 +25,36 @@ jobs:
     - name: Install dependencies
       run: pip install -r requirements.txt
 
-    - name: Pull Latest Changes
+    - name: Pull Latest Changes from Training
       run: |
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
         git pull origin main
 
-    - name: List Available Models
-      run: |
-        echo "Checking for models in repository..."
-        ls -la models/ || echo "No models directory found"
-        ls -la models/*.joblib 2>/dev/null || echo "No model files found"
-
     - name: Find Latest Model Timestamp
       run: |
-        echo "Searching for latest base model..."
         latest_model=$(ls -t models/model_*_base.joblib 2>/dev/null | head -n1)
-        
         if [ -z "$latest_model" ]; then
           echo "ERROR: No base model found!"
-          echo "Available files in models/:"
-          ls -la models/ || echo "Models directory is empty or does not exist"
           exit 1
         fi
-        
         timestamp=$(echo $latest_model | sed 's/models\/model_//' | sed 's/_base.joblib//')
         echo "Found model with timestamp: $timestamp"
         echo "$timestamp" > timestamp.txt
 
-    - name: Verify Data Files Exist
-      run: |
-        echo "Checking for required data files..."
-        ls -la data/*.pickle 2>/dev/null || echo "WARNING: No data files found"
-        
-        required_files=("X_calib.pickle" "y_calib.pickle" "X_test.pickle" "y_test.pickle")
-        for file in "${required_files[@]}"; do
-          if [ ! -f "data/$file" ]; then
-            echo "ERROR: Missing required file: data/$file"
-            exit 1
-          else
-            echo "Found: data/$file"
-          fi
-        done
-
     - name: Set File Permissions
-      run: |
-        chmod +x ./src/calibrate_model.py
-        chmod +x ./src/evaluate_model.py
+      run: chmod +x ./src/calibrate_model.py ./src/evaluate_model.py
 
-    - name: Calibrate SVM Model
+    - name: Calibrate Model Probabilities
       run: |
         timestamp=$(cat timestamp.txt)
-        echo "Calibrating model with timestamp: $timestamp"
         python ./src/calibrate_model.py --timestamp "$timestamp" --method sigmoid
 
-    - name: Verify Calibrated Model Created
+    - name: Move Calibrated Model to models directory
       run: |
         timestamp=$(cat timestamp.txt)
-        if [ ! -f "model_${timestamp}_calibrated_sigmoid.joblib" ]; then
-          echo "ERROR: Calibrated model not created!"
-          exit 1
-        fi
-        echo "Calibrated model successfully created"
+        mv model_${timestamp}_calibrated_sigmoid.joblib models/
+        mv calibration_report_${timestamp}.pickle models/
 
     - name: Evaluate Calibrated Model
       run: |
@@ -95,24 +63,15 @@ jobs:
         mkdir -p metrics
         mv ${timestamp}_calibrated_metrics.json metrics/
 
-    - name: Store Calibrated Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        mv model_${timestamp}_calibrated_sigmoid.joblib models/
-        mv calibration_report_${timestamp}.pickle models/
-
     - name: Commit and Push Calibrated Model
       run: |
         timestamp=$(cat timestamp.txt)
         git config --global user.email "actions@github.com"
         git config --global user.name "GitHub Actions"
-        
         git add models/model_${timestamp}_calibrated_sigmoid.joblib
         git add models/calibration_report_${timestamp}.pickle
         git add metrics/${timestamp}_calibrated_metrics.json
-        
-        git status
-        git commit -m "Add calibrated SVM model - ${timestamp}" || echo "No changes to commit"
+        git commit -m "Calibrate SVM model - ${timestamp}"
         git push
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
