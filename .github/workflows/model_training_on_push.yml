@@ -1,0 +1,63 @@
+name: Model Training on Push to Main
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.9
+
+    - name: Install dependencies
+      run: pip install -r requirements.txt
+
+    - name: Generate Timestamp
+      run: |
+        timestamp=$(date '+%Y%m%d%H%M%S')
+        echo "$timestamp" > timestamp.txt
+        echo "Generated timestamp: $timestamp"
+
+    - name: Set File Permissions
+      run: chmod +x ./src/train_model.py ./src/evaluate_model.py
+
+    - name: Train Base SVM Model
+      run: |
+        timestamp=$(cat timestamp.txt)
+        python ./src/train_model.py --timestamp "$timestamp"
+
+    - name: Evaluate Base Model
+      run: |
+        timestamp=$(cat timestamp.txt)
+        python ./src/evaluate_model.py --timestamp "$timestamp" --model-type base
+        mkdir -p metrics
+        mv ${timestamp}_base_metrics.json metrics/
+
+    - name: Store Base Model
+      run: |
+        timestamp=$(cat timestamp.txt)
+        mkdir -p models
+        mv model_${timestamp}_base.joblib models/
+        mv model_${timestamp}_metadata.pickle models/
+
+    - name: Commit and Push Base Model
+      run: |
+        timestamp=$(cat timestamp.txt)
+        git config --global user.email "actions@github.com"
+        git config --global user.name "GitHub Actions"
+        git add models/
+        git add metrics/
+        git add data/
+        git commit -m "Train base SVM model - ${timestamp}"
+        git push
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
