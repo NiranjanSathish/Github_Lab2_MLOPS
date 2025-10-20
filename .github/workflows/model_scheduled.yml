@@ -36,7 +36,14 @@ jobs:
       run: |
         timestamp=$(cat timestamp.txt)
         python ./src/train_model.py --timestamp "$timestamp"
-      
+
+    - name: Move Base Model to models directory
+      run: |
+        timestamp=$(cat timestamp.txt)
+        mkdir -p models
+        mv model_${timestamp}_base.joblib models/
+        mv model_${timestamp}_metadata.pickle models/
+
     - name: Evaluate Base Model
       run: |
         timestamp=$(cat timestamp.txt)
@@ -44,29 +51,22 @@ jobs:
         mkdir -p metrics
         mv ${timestamp}_base_metrics.json metrics/
 
-    - name: Store Base Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        mkdir -p models
-        mv model_${timestamp}_base.joblib models/
-        mv model_${timestamp}_metadata.pickle models/
-
     - name: Calibrate Model
       run: |
         timestamp=$(cat timestamp.txt)
         python ./src/calibrate_model.py --timestamp "$timestamp" --method sigmoid
+
+    - name: Move Calibrated Model to models directory
+      run: |
+        timestamp=$(cat timestamp.txt)
+        mv model_${timestamp}_calibrated_sigmoid.joblib models/
+        mv calibration_report_${timestamp}.pickle models/
 
     - name: Evaluate Calibrated Model
       run: |
         timestamp=$(cat timestamp.txt)
         python ./src/evaluate_model.py --timestamp "$timestamp" --model-type calibrated
         mv ${timestamp}_calibrated_metrics.json metrics/
-
-    - name: Store Calibrated Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        mv model_${timestamp}_calibrated_sigmoid.joblib models/
-        mv calibration_report_${timestamp}.pickle models/
 
     - name: Commit and Push
       run: |

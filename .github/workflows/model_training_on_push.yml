@@ -35,19 +35,19 @@ jobs:
         timestamp=$(cat timestamp.txt)
         python ./src/train_model.py --timestamp "$timestamp"
 
+    - name: Move Base Model to models directory
+      run: |
+        timestamp=$(cat timestamp.txt)
+        mkdir -p models
+        mv model_${timestamp}_base.joblib models/
+        mv model_${timestamp}_metadata.pickle models/
+
     - name: Evaluate Base Model
       run: |
         timestamp=$(cat timestamp.txt)
         python ./src/evaluate_model.py --timestamp "$timestamp" --model-type base
         mkdir -p metrics
         mv ${timestamp}_base_metrics.json metrics/
-
-    - name: Store Base Model
-      run: |
-        timestamp=$(cat timestamp.txt)
-        mkdir -p models
-        mv model_${timestamp}_base.joblib models/
-        mv model_${timestamp}_metadata.pickle models/
 
     - name: Commit and Push Base Model
       run: |
