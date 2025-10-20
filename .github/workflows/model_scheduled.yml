@@ -2,7 +2,7 @@ name: Scheduled Model Training and Calibration
 
 on: 
   schedule:
-    - cron: '20 19 * * *'  # Every day at 19:20 UTC
+    - cron: '30 19 * * *'  # Every day at 19:30 UTC
   workflow_dispatch:
 
 jobs:
