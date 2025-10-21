@@ -1,99 +1,685 @@
-# Using GitHub Actions for Model Training and Versioning -- Niranjan Sathish
+# GitHub Lab 2 - (IE-7374)
 
-This repository demonstrates how to use GitHub Actions to automate the process of training a machine learning model, storing the model, and versioning it. This allows you to easily update and improve your model in a collaborative environment.
+An automated machine learning pipeline for credit card default prediction featuring Support Vector Machine (SVM) classification with Platt scaling calibration. This lab demonstrates MLOps best practices including automated model training, probability calibration, comprehensive evaluation, and CI/CD implementation using GitHub Actions.
 
+## Overview
 
-## Prerequisites
+This lab implements an end-to-end MLOps pipeline that predicts credit card defaults using real-world financial data. The system emphasizes **probability calibration** - transforming raw SVM outputs into reliable probability estimates critical for financial decision-making.
 
-- [GitHub](https://github.com) account
-- Basic knowledge of Python and machine learning
-- Git command-line tool (optional)
+### Key Capabilities:
+- Automated SVM training on UCI credit card dataset (30,000 customers)
+- **Platt scaling calibration** for accurate probability estimates
+- Comprehensive metrics tracking (Brier Score, ECE, Log Loss)
+- Separate calibration set to avoid data leakage (60/20/20 split)
+- FastAPI deployment for production inference
+- Automated workflows with GitHub Actions
+
+---
 
 ## Getting Started
 
-1. **Fork this Repository**: Click the "Fork" button at the top right of this [repository](https://github.com/raminmohammadi/MLOps/) to create your own copy.
-3. **Clone Your Repository**:
-   ```bash
-   git clone https://github.com/your-username/your-forked-repo.git
-   cd your-forked-repo
+### Prerequisites
+- Python 3.9 or higher
+- Git installed on your system
+- GitHub account with Actions enabled
 
-   ```
-4. GitHub account
-5. Basic knowledge of Python and machine learning
-6. Git command-line tool (optional)
+### Installation Steps
 
-# Running the Workflow
-## Customize Model Training
-1. Modify the `train_model.py` script in the `src/` directory according to your dataset and model requirements. This script generates synthetic data for demonstration purposes.
+**1. Fork and Clone the Repository**
 
-## Push Your Changes:
-1. Commit your changes and push them to your forked repository.
+```bash
+# Fork the repository on GitHub, then:
+git clone https://github.com/your-username/Github_Lab2_MLOPS.git
+cd Github_Lab2_MLOPS
+```
 
-## GitHub Actions Workflow:
-1. Once you push changes to the main branch, the GitHub Actions workflow will be triggered automatically.
+**2. Set Up Your Development Environment**
 
-## View Workflow Progress:
-1. You can track the progress of the workflow by going to the "Actions" tab in your GitHub repository.
+Create and activate a virtual environment:
 
-## Retrieve the Trained Model:
-1. After the workflow completes successfully, the trained model will be stored in the `models/` directory.
+```bash
+# Create virtual environment
+python -m venv venv
 
-# Model Evaluation
-The model evaluation is performed automatically within the GitHub Actions workflow. The evaluation results (e.g., F1 Score) are stored in the `metrics/` directory.
+# Activate on Windows
+venv\Scripts\activate
 
-# Versioning the Model
-Each time you run the workflow, a new version of the model is created and stored. You can access and use these models for your projects.
+# Activate on macOS/Linux
+source venv/bin/activate
+```
 
-# GitHub Actions Workflow Details
-The workflow consists of the following steps:
+**3. Install Dependencies**
 
-- Generate and Store Timestamp: A timestamp is generated and stored in a file for versioning.
-- Model Training: The `train_model.py` script is executed, which trains a random forest classifier on synthetic data and stores the model in the `models/` directory.
-- Model Evaluation: The `evaluate_model.py` script is executed to evaluate the model's F1 Score on synthetic data, and the results are stored in the `metrics/` directory.
-- Store and Version the New Model: The trained model is moved to the `models/` directory with a timestamp-based version.
-- Commit and Push Changes: The metrics and updated model are committed to the repository, allowing you to track changes.
+```bash
+pip install -r requirements.txt
+```
 
-# Model Calibration Workflow
-## Overview
-The `model_calibration_on_push.yml` workflow is a part of the automation process for machine learning model calibration within this repository. It is essential for ensuring that the model's predictions are accurate and well-calibrated, a critical step in machine learning applications.
+**4. Enable GitHub Actions**
+- Go to repository **Settings** → **Actions** → **General**
+- Under "Workflow permissions", select **"Read and write permissions"**
+- Click **Save**
 
-## Workflow Purpose
-This workflow's primary purpose is to calibrate a trained machine learning model after each push to the main branch of the repository. Calibration is a crucial step to align model predictions with reality, particularly when dealing with classification tasks. In simple terms, calibration ensures that a model's predicted probabilities match the actual likelihood of an event happening.
+---
 
-## Workflow Execution
-Let's break down how this workflow operates step by step:
+## 📂 Project Architecture
 
-### Step 1: Trigger on Push to Main Branch
-- This workflow is automatically initiated when changes are pushed to the main branch of the repository. It ensures that the model remains calibrated and up-to-date with the latest data and adjustments.
+```
+Github_Lab2_MLOPS/
+│
+├── .github/
+│   └── workflows/
+│       ├── model_training_on_push.yml       # Training workflow (on push)
+│       ├── model_calibration_on_push.yml    # Calibration workflow (sequential)
+│       └── model_training_scheduled.yml     # Daily automated pipeline
+│
+├── src/
+│   ├── __init__.py
+│   ├── train_model.py                       # SVM training on UCI dataset
+│   ├── calibrate_model.py                   # Platt scaling calibration
+│   └── evaluate_model.py                    # Comprehensive evaluation
+│
+├── models/                                   # Auto-generated by workflows
+│   ├── model_*_base.joblib                  # Uncalibrated SVM models
+│   ├── model_*_calibrated_sigmoid.joblib    # Calibrated SVM models
+│   ├── model_*_metadata.pickle              # Model metadata
+│   └── calibration_report_*.pickle          # Calibration analysis
+│
+├── metrics/                                  # Auto-generated metrics
+│   ├── *_base_metrics.json                  # Base model performance
+│   └── *_calibrated_metrics.json            # Calibrated model performance
+│
+├── data/                                     # Auto-generated datasets
+│   ├── X_train.pickle, y_train.pickle       # Training set (60%)
+│   ├── X_calib.pickle, y_calib.pickle       # Calibration set (20%)
+│   ├── X_test.pickle, y_test.pickle         # Test set (20%)
+│   └── scaler.pickle                        # Fitted StandardScaler
+│
+├── app.py                                    # FastAPI deployment (optional)
+├── requirements.txt                          # Python dependencies
+├── .gitignore                               # Git exclusions
+└── README.md                                # This file
+```
 
-### Step 2: Prepare Environment
-- The workflow begins by setting up a Python environment and installing the necessary Python libraries and dependencies. This is crucial to ensure that the model calibration process can be executed without any issues.
+---
 
-### Step 3: Load Trained Model
-- The trained machine learning model, which has been previously saved in the `models/` directory, is loaded into memory. This model should be the most recent version, as trained by the `train_model.py` script.
+## 🔍 Why SVM Needs Calibration
 
-### Step 4: Calibrate Model Probabilities
-- In this step, the model's predicted probabilities are calibrated. Calibration methods, such as Platt scaling or isotonic regression, are applied. These methods adjust the model's predicted probabilities to match the actual likelihood of an event occurring. This calibration step is critical for reliable decision-making based on the model's predictions.
+### The Problem with Uncalibrated SVMs
 
-### Step 5: Save Calibrated Model
-- The calibrated model is saved back to the `models/` directory. It is given a distinct identifier to differentiate it from the original, uncalibrated models. This ensures that both the original model and the calibrated model are available for comparison and use.
+Support Vector Machines are excellent classifiers but produce **poorly calibrated probabilities**:
 
-### Step 6: Commit and Push Changes
-- This final step involves committing the calibrated model and any other relevant files to the repository. It is essential to keep track of the changes made during the calibration process and to store the calibrated model in the repository for future applications and reference.
+| Issue | Impact | Example |
+|-------|--------|---------|
+| **Optimizes for margin, not probabilities** | Distance to hyperplane ≠ true probability | SVM says 0.95 confidence, but actual default rate is only 0.65 |
+| **Overconfident predictions** | Many predictions near 0 or 1 | 60%+ of predictions are <0.1 or >0.9 |
+| **Unreliable for decision-making** | Can't trust probability values | Can't set accurate interest rates based on default risk |
 
-# Customization
-The `model_calibration_on_push.yml` workflow can be customized to align with your specific project requirements. You can modify calibration methods, the directory where the calibrated model is saved, or any other aspects of the calibration process to meet your project's unique needs.
+### The Solution: Platt Scaling
 
-# Integration with Model Training
-This workflow is designed to work seamlessly with the main model training workflow, `model_retraining_on_push.yml`. In the initial workflow, the model is trained, and in this workflow, the calibrated model is generated. The calibrated model can then be used in applications where precise, well-calibrated probabilities are essential.
+**Platt scaling** (sigmoid calibration) transforms SVM outputs into reliable probabilities:
+- Fits a logistic regression on the SVM's decision function
+- Calibrates predictions to match actual default frequencies
+- Essential for financial applications requiring accurate risk estimates
 
-# License
-This project is licensed under the MIT License - see the LICENSE file for details.
+**Result**: Calibrated probabilities you can trust for business decisions.
 
-# Acknowledgments
-- This project uses GitHub Actions for continuous integration and deployment.
-- Model training and evaluation are powered by Python and scikit-learn.
+---
 
-# Questions or Issues
-If you have any questions or encounter issues while using this GitHub Actions workflow, please open an issue in the Issues section of your repository.
+## 📊 Model Features
 
+### Dataset: Credit Card Default (UCI Repository)
+
+**Source**: [UCI Machine Learning Repository - ID: 350](https://archive.ics.uci.edu/dataset/350/default+of+credit+card+clients)
+
+**Statistics**:
+- 30,000 credit card clients from Taiwan
+- 23 features: payment history, bill amounts, demographics
+- Binary classification: Will client default next month?
+- Class imbalance: ~22% default rate
+
+**Features Include**:
+1. LIMIT_BAL: Credit limit
+2. SEX: Gender (1=male, 2=female)
+3. EDUCATION: Education level
+4. MARRIAGE: Marital status
+5. AGE: Age in years
+6-11. PAY_0 to PAY_6: Payment status (past 6 months)
+12-17. BILL_AMT1 to BILL_AMT6: Bill amounts
+18-23. PAY_AMT1 to PAY_AMT6: Payment amounts
+
+### Model Configuration
+
+**Support Vector Machine (SVM)**:
+```python
+SVC(
+    kernel='rbf',              # Radial Basis Function kernel
+    C=1.0,                     # Regularization parameter
+    gamma='scale',             # Kernel coefficient
+    probability=True,          # Enable probability estimates
+    class_weight='balanced',   # Handle class imbalance
+    random_state=42
+)
+```
+
+**Preprocessing**:
+- StandardScaler (mean=0, std=1)
+- Stratified train/calibration/test split
+- Removes invalid data
+
+---
+
+## ⚙️ CI/CD with GitHub Actions
+
+### Overview
+
+This project implements **three automated GitHub Actions workflows** that demonstrate MLOps best practices. The workflows are triggered automatically and handle the complete ML pipeline from training to deployment.
+
+### Workflow Architecture
+
+```
+Push to main
+    ↓
+┌─────────────────────────────────┐
+│ Workflow 1: Training            │
+│ model_training_on_push.yml      │
+└─────────────────────────────────┘
+    ↓ (Triggers on completion)
+┌─────────────────────────────────┐
+│ Workflow 2: Calibration         │
+│ model_calibration_on_push.yml   │
+└─────────────────────────────────┘
+
+Daily at midnight UTC
+    ↓
+┌─────────────────────────────────┐
+│ Workflow 3: Scheduled Pipeline  │
+│ model_training_scheduled.yml    │
+└─────────────────────────────────┘
+```
+
+---
+
+### Workflow 1: Model Training (`model_training_on_push.yml`)
+
+**Trigger**: Push to `main` branch
+
+**Configuration**:
+```yaml
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+```
+
+**Pipeline Steps**:
+
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1 | Checkout code | `actions/checkout@v2` - Get latest code |
+| 2 | Setup Python | `actions/setup-python@v2` - Python 3.9 environment |
+| 3 | Install dependencies | `pip install -r requirements.txt` |
+| 4 | Generate timestamp | Create unique model version ID |
+| 5 | Set permissions | Make Python scripts executable |
+| 6 | **Train SVM model** | Execute `train_model.py` with UCI dataset |
+| 7 | Move model to models/ | Organize artifacts before evaluation |
+| 8 | **Evaluate base model** | Execute `evaluate_model.py` for metrics |
+| 9 | **Commit artifacts** | Push models, data, and metrics to repo |
+
+**Artifacts Generated**:
+- ✅ `models/model_[timestamp]_base.joblib` - Trained SVM
+- ✅ `models/model_[timestamp]_metadata.pickle` - Model info
+- ✅ `data/X_train.pickle`, `y_train.pickle` - Training data
+- ✅ `data/X_calib.pickle`, `y_calib.pickle` - Calibration data
+- ✅ `data/X_test.pickle`, `y_test.pickle` - Test data
+- ✅ `data/scaler.pickle` - Fitted StandardScaler
+- ✅ `metrics/[timestamp]_base_metrics.json` - Performance metrics
+
+**Key Feature**: This workflow uses **timestamp-based versioning** for all artifacts, enabling model tracking and comparison.
+
+---
+
+### Workflow 2: Model Calibration (`model_calibration_on_push.yml`)
+
+**Trigger**: Automatically after training workflow completes
+
+**Configuration** (Sequential Execution):
+```yaml
+on:
+  workflow_run:
+    workflows: ["Model Training on Push to Main"]
+    types:
+      - completed
+    branches:
+      - main
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+```
+
+**Why This Matters**: The `workflow_run` trigger ensures calibration **only runs after training succeeds**, preventing errors from missing models. This is a critical MLOps pattern.
+
+**Pipeline Steps**:
+
+| Step | Action | Purpose |
+|------|--------|---------|
+| 1 | Checkout code | Get latest repository state |
+| 2 | Setup Python | Python 3.9 environment |
+| 3 | Install dependencies | Required packages |
+| 4 | **Pull latest changes** | Get models from training workflow |
+| 5 | **Find latest model** | Auto-detect most recent trained model |
+| 6 | Set permissions | Make scripts executable |
+| 7 | **Calibrate model** | Apply Platt scaling with `calibrate_model.py` |
+| 8 | Move calibrated model | Organize before evaluation |
+| 9 | **Evaluate calibrated** | Measure calibration improvements |
+| 10 | **Commit calibrated artifacts** | Push calibrated model and reports |
+
+**Artifacts Generated**:
+- ✅ `models/model_[timestamp]_calibrated_sigmoid.joblib` - Calibrated SVM
+- ✅ `models/calibration_report_[timestamp].pickle` - Calibration analysis
+- ✅ `metrics/[timestamp]_calibrated_metrics.json` - Calibration metrics
+
+**Key Feature**: Automatic model discovery using `ls -t models/model_*_base.joblib | head -n1` ensures the workflow always calibrates the latest model.
+
+---
+
+### Workflow 3: Scheduled Training (`model_training_scheduled.yml`)
+
+**Trigger**: Daily at midnight UTC + manual dispatch
+
+**Configuration**:
+```yaml
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Daily at midnight UTC
+  workflow_dispatch:      # Manual trigger button in GitHub UI
+```
+
+**Purpose**: Automated daily retraining for production model updates. Combines both training and calibration in a single workflow.
+
+**Pipeline Steps**:
+
+| Step | Action |
+|------|--------|
+| 1-5 | Environment setup (same as Workflow 1) |
+| 6 | Train base SVM model |
+| 7 | Move base model to models/ |
+| 8 | Evaluate base model |
+| 9 | **Calibrate model** (same timestamp) |
+| 10 | Move calibrated model |
+| 11 | Evaluate calibrated model |
+| 12 | **Commit all artifacts** (single commit) |
+
+**Key Feature**: The `workflow_dispatch` trigger adds a **"Run workflow" button** in GitHub Actions UI for manual execution without pushing code.
+
+---
+
+### Workflow Execution Flow
+
+**After you push to main**:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 1. GitHub detects push to main                          │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│ 2. Training Workflow Starts                             │
+│    - Duration: ~5-7 minutes                             │
+│    - Status: Yellow circle (running)                    │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│ 3. Training Completes Successfully                      │
+│    - Commits models/data/metrics (1st commit)           │
+│    - Status: Green checkmark                            │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│ 4. Calibration Workflow Auto-Triggers                   │
+│    - Waits for training artifacts                       │
+│    - Duration: ~2-3 minutes                             │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│ 5. Calibration Completes Successfully                   │
+│    - Commits calibrated model (2nd commit)              │
+│    - Status: Green checkmark                            │
+└─────────────────────────────────────────────────────────┘
+                        ↓
+┌─────────────────────────────────────────────────────────┐
+│ 6. Both Models Ready for Use                            │
+│    - Base model for comparison                          │
+│    - Calibrated model for production                    │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Viewing Workflow Results
+
+**Step 1: Navigate to Actions Tab**
+- Go to your repository on GitHub
+- Click the **"Actions"** tab at the top
+
+**Step 2: View Workflow Runs**
+You'll see three workflows:
+- 🟢 Model Training on Push to Main
+- 🟢 Model Calibration on Push to Main  
+- 🟡 Scheduled Model Training and Calibration
+
+**Step 3: Inspect a Run**
+Click any workflow run to see:
+- ✅ Status of each step (green checkmark or red X)
+- 📋 Detailed logs for debugging
+- ⏱️ Execution time for each step
+- 📁 Commit history showing artifacts
+
+**Step 4: Check Artifacts in Repository**
+After workflows complete, navigate to:
+- `models/` - See your trained and calibrated models
+- `metrics/` - View JSON files with performance metrics
+- `data/` - Inspect saved datasets
+
+---
+
+### Advanced Workflow Features
+
+#### 1. Environment Variables and Secrets
+
+The workflows use GitHub secrets for authentication:
+```yaml
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+```
+
+This **auto-generated token** allows workflows to commit artifacts back to the repository.
+
+#### 2. Conditional Execution
+
+Calibration only runs if training succeeds:
+```yaml
+if: ${{ github.event.workflow_run.conclusion == 'success' }}
+```
+
+This prevents wasted compute and cascading failures.
+
+#### 3. Artifact Passing Between Workflows
+
+Training workflow commits files → Calibration workflow pulls them:
+```yaml
+- name: Pull Latest Changes
+  run: git pull origin main
+```
+
+This enables **stateful workflows** where later jobs use outputs from earlier jobs.
+
+#### 4. Timestamp-Based Versioning
+
+Every model gets a unique timestamp:
+```bash
+timestamp=$(date '+%Y%m%d%H%M%S')
+# Example: 20251020223841
+```
+
+This allows:
+- ✅ Model version tracking
+- ✅ Rollback to previous versions
+- ✅ A/B testing different models
+- ✅ Comparison of training runs
+
+#### 5. Automated Git Operations
+
+Workflows automatically commit results:
+```yaml
+- name: Commit and Push
+  run: |
+    git config --global user.email "actions@github.com"
+    git config --global user.name "GitHub Actions"
+    git add models/ metrics/ data/
+    git commit -m "Train base SVM model - ${timestamp}"
+    git push
+```
+
+This creates an **audit trail** of all model changes.
+
+---
+
+## 📈 Evaluation Metrics
+
+### Classification Metrics
+
+| Metric | Description | Interpretation |
+|--------|-------------|----------------|
+| **Accuracy** | Overall correctness | % of correct predictions |
+| **Precision** | Positive predictive value | Of predicted defaults, how many were correct? |
+| **Recall** | Sensitivity/True positive rate | Of actual defaults, how many did we catch? |
+| **F1-Score** | Harmonic mean | Balance between precision and recall |
+| **ROC-AUC** | Discrimination ability | Model's ability to distinguish classes |
+
+### Calibration Metrics (Lower is Better)
+
+| Metric | Purpose | Good Value | Impact |
+|--------|---------|------------|--------|
+| **Brier Score** | Probability accuracy | <0.15 | Lower = better calibrated predictions |
+| **Expected Calibration Error (ECE)** | Calibration quality | <0.05 | Measures if probabilities match reality |
+| **Log Loss** | Confidence penalty | <0.50 | Penalizes confident wrong predictions |
+| **Calibration Gap** | Alignment measure | <0.03 | \|Mean prediction - Actual rate\| |
+
+### Overconfidence Analysis
+
+Tracks percentage of extreme predictions:
+- **Extreme Low**: Predictions <0.1 (overconfident "no default")
+- **Extreme High**: Predictions >0.9 (overconfident "default")
+- **Total Extreme**: Sum of both (should decrease after calibration)
+
+---
+
+## 🧪 Testing the Model
+
+### Local Testing (Optional)
+
+**Test Training Script**:
+```bash
+# Generate test timestamp
+timestamp=$(date '+%Y%m%d%H%M%S')
+
+# Run training
+python src/train_model.py --timestamp $timestamp
+
+# Check outputs
+ls models/  # Should see model_*_base.joblib
+ls data/    # Should see X_train.pickle, etc.
+```
+
+**Test Calibration Script**:
+```bash
+# Use same timestamp from training
+python src/calibrate_model.py --timestamp $timestamp --method sigmoid
+
+# Check outputs
+ls models/  # Should see model_*_calibrated_sigmoid.joblib
+```
+
+**Test Evaluation**:
+```bash
+# Evaluate base model
+python src/evaluate_model.py --timestamp $timestamp --model-type base
+
+# Evaluate calibrated model
+python src/evaluate_model.py --timestamp $timestamp --model-type calibrated
+```
+
+### Expected Calibration Improvements
+
+With SVM on Credit Card Default dataset:
+
+| Metric | Typical Improvement |
+|--------|---------------------|
+| Brier Score | 15-30% reduction |
+| Expected Calibration Error | 30-50% reduction |
+| Overconfidence (extreme predictions) | 20-40 percentage points reduction |
+| Calibration Gap | 40-60% reduction |
+
+---
+
+## 🚀 Deployment with FastAPI
+
+### Running the API Locally
+
+**1. Install FastAPI**:
+```bash
+pip install fastapi uvicorn
+```
+
+**2. Start the Server**:
+```bash
+python app.py
+```
+
+**3. Access the API**:
+- API Root: http://localhost:8000
+- Interactive Docs: http://localhost:8000/docs  ⭐ **Try it here!**
+- Alternative Docs: http://localhost:8000/redoc
+
+### API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/` | GET | API information |
+| `/health` | GET | Health check |
+| `/model_info` | GET | Model details |
+| `/predict` | POST | Single customer prediction |
+| `/batch_predict` | POST | Multiple predictions |
+| `/calibration_report` | GET | Calibration improvements |
+
+### Example Usage
+
+**Single Prediction**:
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": [20000, 2, 2, 1, 24, 26, 0, 0, 0, 0, 0, 
+                 689, 0, 0, 0, 689, 0, 0, 0, 0, 0, 0, 0]
+  }'
+```
+
+**Response**:
+```json
+{
+  "default_probability": 0.234,
+  "default_probability_pct": "23.40%",
+  "prediction": 0,
+  "prediction_label": "No Default",
+  "risk_level": "MODERATE RISK",
+  "recommendation": "Approve with monitoring",
+  "suggested_interest_rate": "Prime rate + 5%"
+}
+```
+
+**Interactive Testing**: Visit http://localhost:8000/docs and click "Try it out" on any endpoint!
+
+---
+
+## 🛠️ Development Workflow
+
+### Making Changes
+
+**1. Create a feature branch**:
+```bash
+git checkout -b feature/improve-calibration
+```
+
+**2. Make your changes** (e.g., adjust SVM parameters):
+```python
+# In src/train_model.py
+svm_model = SVC(
+    kernel='rbf',
+    C=10.0,        # Changed from 1.0
+    gamma='auto'   # Changed from 'scale'
+)
+```
+
+**3. Test locally** (optional but recommended):
+```bash
+python src/train_model.py --timestamp "test_$(date +%s)"
+```
+
+**4. Commit and push**:
+```bash
+git add .
+git commit -m "Experiment: Increase SVM C parameter to 10.0"
+git push origin feature/improve-calibration
+```
+
+**5. Create Pull Request** - CI/CD workflows will automatically run!
+
+### Viewing Workflow Results
+
+After pushing to `main`:
+1. Navigate to the **Actions** tab in your repository
+2. View both workflows:
+   - ✅ "Model Training on Push to Main"
+   - ✅ "Model Calibration on Push to Main"
+3. Click on any run to see detailed logs
+4. Download artifacts to inspect models and metrics
+5. Check the `models/` and `metrics/` directories in your repo
+
+---
+
+## 🌟 Key Differentiators
+
+### What Makes This Implementation Stand Out
+
+| Aspect | Base Lab | This Implementation |
+|--------|----------|---------------------|
+| Dataset | Synthetic | **Real UCI credit card data** |
+| Model | Random Forest | **SVM requiring calibration** |
+| Calibration | Named only | **Actual Platt scaling** |
+| Metrics | F1 only | **8+ including Brier, ECE** |
+| Data Splits | Train/Test | **Train/Calib/Test (60/20/20)** |
+| Workflows | Combined | **Separate training + calibration** |
+| Deployment | None | **FastAPI with auto docs** |
+
+---
+
+## 🔧 Troubleshooting
+
+**Workflows not triggering?**
+- Verify `.github/workflows/` folder structure exists
+- Ensure YAML files are properly formatted
+- Check that workflow permissions are enabled in Settings
+
+**Model files not found?**
+- Ensure training workflow completed successfully
+- Check that files were committed (look in `models/` directory)
+- Verify timestamp matches between training and calibration
+
+**API not loading model?**
+- Ensure you have run training workflow at least once
+- Check that `models/` and `data/` directories exist and contain files
+- Verify scaler.pickle exists in `data/` directory
+
+**Local tests failing?**
+- Activate virtual environment first
+- Install all dependencies: `pip install -r requirements.txt`
+- Check Python version: `python --version` (should be 3.9+)
+
+---
+
+## 📝 License
+
+This lab is developed as part of MLOps coursework (IE-7374) and is available for educational purposes.
+---
+
+**Author**: [Niranjan Sathish]  
+**Course**:MLOPS (IE-7374)  
+**Date**: October 2025  
+
+**Key Takeaway**: GitHub Actions enables automated, reproducible ML pipelines where workflows can orchestrate complex dependencies, automatically version models, and maintain complete audit trails - essential capabilities for production MLOps systems.

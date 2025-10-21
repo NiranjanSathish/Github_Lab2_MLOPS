@@ -208,7 +208,7 @@ if __name__ == '__main__':
         print(f"  Probabilities > 0.9: {extreme_high:.1f}%")
         
         if extreme_low + extreme_high > 50:
-            print("\n⚠️  Warning: Model shows signs of overconfidence!")
+            print("\n Warning: Model shows signs of overconfidence!")
             print("  Many predictions are near 0 or 1.")
             print("  This is typical for SVMs and why calibration is crucial.")
         

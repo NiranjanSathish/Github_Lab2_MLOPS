@@ -135,7 +135,7 @@ if __name__ == '__main__':
     print(f"  Total extreme: {extreme_low + extreme_high:.1f}%")
     
     if extreme_low + extreme_high > 50:
-        print(f"\n⚠️  High overconfidence detected! ({extreme_low + extreme_high:.1f}%)")
+        print(f"\nHigh overconfidence detected! ({extreme_low + extreme_high:.1f}%)")
         print("  This is typical for SVMs and confirms need for calibration.")
     
     # Step 4: Calibrate Model Probabilities
@@ -253,34 +253,7 @@ if __name__ == '__main__':
     
     brier_improvement = improvements.get('brier_score_improvement', 0)
     ece_improvement = improvements.get('expected_calibration_error_improvement', 0)
-    
-    print(f"\n💰 Financial Impact:")
-    print(f"  Brier Score Improvement: {brier_improvement:+.2f}%")
-    if brier_improvement > 0:
-        print("    ✓ More accurate probability estimates for loan pricing")
-        print("    ✓ Better risk-adjusted returns on credit portfolio")
-        print("    ✓ Reduced capital requirements for unexpected losses")
-    
-    print(f"\n📊 Risk Assessment Impact:")
-    print(f"  Expected Calibration Error Improvement: {ece_improvement:+.2f}%")
-    if ece_improvement > 0:
-        print("    ✓ Predicted probabilities match actual default rates")
-        print("    ✓ More reliable credit score thresholds")
-        print("    ✓ Better portfolio segmentation by risk level")
-    
-    print(f"\n📉 Overconfidence Reduction: {overconf_reduction:.1f}pp")
-    if overconf_reduction > 0:
-        print("    ✓ Fewer extreme predictions that could mislead decisions")
-        print("    ✓ More nuanced risk assessment across probability spectrum")
-        print("    ✓ Better handling of borderline cases")
-    
-    print("\n🎯 Key Business Benefits:")
-    print("  1. Loan Pricing: Set interest rates proportional to true default risk")
-    print("  2. Credit Limits: Make informed decisions based on reliable probabilities")
-    print("  3. Portfolio Management: Accurate aggregate risk calculations")
-    print("  4. Regulatory Compliance: Explainable and well-calibrated risk models")
-    print("  5. Customer Segmentation: Reliable probability-based tiers")
-    
+        
     # Step 5: Save Calibrated Model
     print("\n" + "="*60)
     print("[STEP 5] Saving calibrated model")
@@ -326,16 +299,8 @@ if __name__ == '__main__':
     print(f"  • Base SVM: {base_model_file}")
     print(f"  • Calibrated SVM: {calibrated_model_filename}")
     
-    print(f"\n✅ RECOMMENDATION: Use calibrated model for production")
     print(f"\nWhy the calibrated model is superior:")
     print(f"  • {brier_improvement:.1f}% better probability accuracy (Brier Score)")
     print(f"  • {ece_improvement:.1f}% better calibration (ECE)")
     print(f"  • {overconf_reduction:.1f}pp reduction in overconfident predictions")
     print(f"  • Probabilities now reliably match actual default rates")
-    
-    print(f"\nProduction use cases:")
-    print(f"  • Setting risk-based interest rates")
-    print(f"  • Determining credit limits")
-    print(f"  • Portfolio risk management")
-    print(f"  • Regulatory reporting")
-    print(f"  • Customer communication (explainable AI)")

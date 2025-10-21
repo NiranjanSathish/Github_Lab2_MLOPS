@@ -199,7 +199,7 @@ if __name__ == '__main__':
     }
     
     if model_type == "base" and (extreme_low + extreme_high) > 50:
-        print("\n⚠️  Base SVM shows high overconfidence (typical)")
+        print("\n Base SVM shows high overconfidence (typical)")
         print("  Calibration should significantly improve this.")
     elif model_type == "calibrated" and (extreme_low + extreme_high) < 30:
         print("\n✓ Calibrated model shows reduced overconfidence")
